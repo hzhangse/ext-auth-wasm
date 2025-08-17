@@ -1,0 +1,5 @@
+{
+    "makefile.extensionOutputFolder": "./.vscode",
+    "go.gopath": "/home/ryan/.gvm/pkgsets/go1.24.4/global",
+    "go.goroot": "/home/ryan/.gvm/gos/go1.24.4",
+}
