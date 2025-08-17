@@ -1,0 +1,107 @@
+admin:
+  address:
+    socket_address:
+      protocol: TCP
+      address: 0.0.0.0
+      port_value: 9901
+static_resources:
+  listeners:
+  - name: listener_0
+    address:
+      socket_address:
+        protocol: TCP
+        address: 0.0.0.0
+        port_value: 10000
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: ingress_http
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains: ["*"]
+              routes:
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: token-service
+          http_filters:
+          - name: token-server
+            typed_config:
+              "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+              type_url: type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+              value:
+                config:
+                  name: token-server
+                  vm_config:
+                    runtime: envoy.wasm.runtime.v8
+                    code:
+                      local:
+                        filename: /etc/envoy/plugin.wasm
+                  configuration:
+                    "@type": type.googleapis.com/google.protobuf.StringValue
+                    value: |
+                      {
+
+                        "token_service": {
+                          "endpoint": {
+                            "service_name": "token-service"
+                          }
+                        },
+                        "token_config": {
+                          "enabled": true,
+                          "credential": {
+                            "form_fields": {
+                              "appKey": "AgUiMnIUrF2s4b6Y",
+                              "appSecret": "AlW9GWKuPdLqkqKknoh8hSzmTR9917KD"
+                            }
+                          },
+                          "token_path": "/bst/oa/auth/getToken",
+                          "timeout": 3000,
+                          "token_extraction": {
+                            "response_path": "datas"
+                          },
+                          "token_injection": [
+                            {
+                              "type": "header",
+                              "key": "token",
+                              "format": "{token}"
+                            }
+                          ],
+                          "invalid_token_condition": "code==1",
+                          "retry_send_times" : 2
+                        }
+                      }
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+  clusters:
+  - name: token-service
+    connect_timeout: 5s
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: token-service
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.1.8
+                port_value: 8084                    
+  - name: gateway_service
+    connect_timeout: 5s
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: gateway_service
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: 192.168.1.8
+                    port_value: 10000                

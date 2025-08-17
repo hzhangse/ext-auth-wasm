@@ -1,0 +1,26 @@
+gateway_service:
+  endpoint:
+    service_name: "gw"
+    service_port: 8081
+    service_source: "dns"
+token_config:
+  credential:
+    form_fields:
+      appKey: "AgUiMnIUrF2s4b6Y"
+      appSecret: "AlW9GWKuPdLqkqKknoh8hSzmTR9917KD"
+  enabled: true
+  invalid_token_condition: "code==1"
+  retry_send_times: 2
+  timeout: 3000
+  token_extraction:
+    response_path: "datas"
+  token_injection:
+  - format: "{token}"
+    key: "token"
+    type: "header"
+  token_path: "/bst/oa/auth/getToken"
+token_service:
+  endpoint:
+    service_name: "test.dns"
+    service_port: 8084
+    service_source: "fqdn"
