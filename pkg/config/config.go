@@ -186,15 +186,15 @@ func ParseConfig(json gjson.Result, config *SimpleConfig) error {
 		}
 	}
 
-	// gw_service := json.Get("gateway_service")
-	// if gw_service.Exists() {
-	// 	// Create HTTP client
-	// 	endpoint := gw_service.Get("endpoint")
+	gw_service := json.Get("gateway_service")
+	if gw_service.Exists() {
+		// Create HTTP client
+		endpoint := gw_service.Get("endpoint")
 
-	// 	if endpoint.Exists() {
-	// 		config.GwService.Client, _ = CreateClusterClient(endpoint)
+		if endpoint.Exists() {
+			config.GwService.Client, _ = CreateClusterClient(endpoint)
 
-	// 	}
-	// }
+		}
+	}
 	return nil
 }

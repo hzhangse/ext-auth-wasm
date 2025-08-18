@@ -84,7 +84,6 @@ func onHttpResponseBody(ctx wrapper.HttpContext, config config.SimpleConfig, bod
 	}
 
 	if token.GetTokenManager().IsTokenInvalid(body, config) {
-		// ✅ 使用 ClearToken 方法，而不是直接操作 mutex
 
 		// 处理重试逻辑
 		return retry.HandleRetryWithToken(ctx, config, token.GetTokenManager())

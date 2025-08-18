@@ -1,8 +1,8 @@
 gateway_service:
   endpoint:
-    service_name: "gw"
-    service_port: 8081
-    service_source: "dns"
+    service_name: "bst-oa-test"
+    service_port: 80
+    service_source: "ip"
 token_config:
   credential:
     form_fields:
@@ -21,6 +21,6 @@ token_config:
   token_path: "/bst/oa/auth/getToken"
 token_service:
   endpoint:
-    service_name: "test.dns"
-    service_port: 8084
-    service_source: "fqdn"
+    service_name: "bst-oa-test"
+    service_port: 80
+    service_source: "ip"
