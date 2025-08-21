@@ -266,6 +266,12 @@ func (tm *TokenManager) IsTokenInvalid(responseBody []byte, config config.Simple
 		return ok1 && ok2 && strings.Contains(s, sub)
 	}
 
+	// Add the has function to check if a field exists
+	env["has"] = func(mapVar map[string]interface{}, key string) bool {
+		_, exists := mapVar[key]
+		return exists
+	}
+
 	// 2. 注入顶层字段，支持直接写 code != 0
 	for k, v := range response {
 		// 避免覆盖自定义函数（如 contains）
@@ -299,9 +305,9 @@ func (tm *TokenManager) IsTokenInvalid(responseBody []byte, config config.Simple
 	}
 
 	if result {
-		log.Infof("✅ 表达式判断为 true，token 无效，需要重新获取")
+		log.Infof("❌表达式判断为 true，token 无效，需要重新获取")
 	} else {
-		log.Debugf("❌ 表达式判断为 false，token 有效")
+		log.Debugf("✅  表达式判断为 false，token 有效")
 	}
 
 	return result

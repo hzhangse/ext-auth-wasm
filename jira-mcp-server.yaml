@@ -1,0 +1,307 @@
+server:
+  name: "bst-jira-mcp-server"
+
+tools:
+- name: search_jira_issues
+  description: |
+    搜索Jira问题。你必须使用 `jql` 参数来指定查询条件。
+    **重要使用说明**：
+    - `jql` 是 Jira Query Language，用于构建查询。你必须根据用户的自然语言请求，将其转化为正确的JQL语法。
+    - 常见字段示例：
+      - `project = 'XXX'` 查询项目
+      - `priority = 'P0'`  查询高优先级问题 (P0/P1/P2/P3/P4)
+      - `assignee = 'username'` 查询经办人
+      - `issuetype in (Epic,sub-Task,Task)` 或 `issuetype = 'Task'` 查询问题类型
+      - 使用 `AND`, `OR` 连接多个条件。
+    - **业务规则映射**：
+      - 用户所说的“**关键任务**”通常指 **优先级为 P0 的Task，sub-Task以及Epic**。应生成 `project ='xxx' and priority = 'P0' and issuetype in (Epic,sub-Task,Task)`。
+    - **示例**：
+      - 用户问：“请查询项目ISPCV20S的关键任务” -> 你应该生成: `project = 'ISPCV20S' AND priority = 'P0' and issuetype in (Epic,sub-Task,Task)`
+  args:
+  - name: jql
+    description: |
+      Jira Query Language 查询语句。
+      **你必须根据用户的请求，动态生成此JQL字符串**。
+      例如：
+      - 查询项目：`project = 'ISPCV20S'`
+      - 查询高优先级（关键人物）：`priority = 'P0'`
+      - 组合查询：`project = 'ISPCV20S' AND priority = 'P0'`
+      **请确保JQL语法正确，字符串用单引号包围。**
+  - name: maxResults
+    description: "每页最大返回结果数"
+    type: integer
+    required: true
+    default: 2000
+    position: body
+  - name: startAt
+    description: "分页起始索引"
+    type: integer
+    required: true
+    default: 0
+    position: body
+  - name: expand
+    description: "需要展开的字段（如 names, schema）"
+    type: array
+    items:
+      type: string
+    default: [ "names" ]
+    required: true
+    position: body
+  requestTemplate:
+    url: https://jira.bst-agent.com/rest/api/2/search
+    method: POST
+    headers:
+    - key: Content-Type
+      value: application/json
+  responseTemplate:
+    prependBody: |+
+      # API Response Information
+      Below is the response from an API call. To help you understand the data, I've provided:
+      1. A detailed description of all fields in the response structure
+      2. The complete API response
+      ## IMPORTANT: Data Filtering Instructions
+      - **IGNORE NULL/EMPTY FIELDS**: When analyzing the response, completely ignore any field that has a value of `null`, `[]` (empty array), or `""` (empty string). These fields are not currently relevant.
+      - **FOCUS ON POPULATED FIELDS**: Only pay attention to and reason about fields that contain actual data (non-null, non-empty values).
+      - **SUMMARIZE, DON'T LIST**: Your response should summarize the key information from the populated fields, not repeat the entire structure or list every field.
+
+      ## Response Structure
+      > Content-Type: application/json
+      - **issues**: 返回的问题列表 (Type: array)
+        - **issues[].id**: 问题唯一ID (Type: string)
+        - **issues[].key**: 问题Key，如 ISPCV20S-575 (Type: string)
+        - **issues[].fields**: 问题的具体字段 (Type: object)             
+          - **issues[].fields.resolution.name**: 解决结果 (Type: string)
+          - **issues[].fields.customfield_10180**: 问题关闭日期 (Type: string)
+          - **issues[].fields.assignee**: 经办人 (Type: object)
+            - **issues[].fields.assignee.name**: 经办人用户名 (Type: string)
+            - **issues[].fields.assignee.displayName**: 经办人姓名 (Type: string)
+          - **issues[].fields.customfield_10173**: 实际完成日期 (Type: string)
+          - **issues[].fields.customfield_10175**: 实际开始日期 (Type: string)
+          - **issues[].fields.reporter**: 报告人 (Type: object)
+            - **issues[].fields.reporter.name**: 报告人用户名 (Type: string)
+            - **issues[].fields.reporter.displayName**: 报告人姓名 (Type: string)
+          - **issues[].fields.issuetype.name**: 问题类型 (Type: string)
+          - **issues[].fields.customfield_10144**: 责任人 (Type: object)
+            - **issues[].fields.customfield_10144.name**: 责任人用户名 (Type: string)
+            - **issues[].fields.customfield_10144.displayName**: 责任人姓名 (Type: string)
+          - **issues[].fields.customfield_10145**: 计划开始日期 (Type: string)
+          - **issues[].fields.timeoriginalestimate**: 初始预估 (Type: integer)
+          - **issues[].fields.customfield_10135**: 计划完成日期 (Type: string)
+          - **issues[].fields.customfield_10128**: 开发责任人 (Type: object)
+            - **issues[].fields.customfield_10128.name**: 开发责任人用户名 (Type: string)
+            - **issues[].fields.customfield_10128.displayName**: 开发责任人姓名 (Type: string)
+          - **issues[].fields.summary**: 概要 (Type: string)
+          - **issues[].fields.priority.name**: 优先级名称 (Type: string)
+          - **issues[].fields.timeestimate**: 剩余的估算 (Type: integer)
+          - **issues[].fields.status.name**: 状态名称 (Type: string)
+          - **issues[].fields.creator**: 创建者 (Type: object)
+            - **issues[].fields.creator.name**: 创建者用户名 (Type: string)
+            - **issues[].fields.creator.displayName**: 创建者姓名 (Type: string)
+          - **issues[].fields.timespent**: 耗费时间 (Type: integer)
+          - **issues[].fields.aggregatetimeestimate**: Σ 预估剩余时间 (Type: integer)
+          - **issues[].fields.aggregateprogress**: Σ 进度 (Type: object)
+            - **issues[].fields.aggregateprogress.progress**: 进度值 (Type: integer)
+            - **issues[].fields.aggregateprogress.total**: 总进度值 (Type: integer)
+          - **issues[].fields.aggregatetimespent**: Σ 耗费时间 (Type: integer)
+      ## Original Response
+
+- name: get_calWorkday
+  args:
+  - name: startDate
+    description: "计算起始日期，格式 YYYY-MM-DD（必填）"
+    position: "query"
+    required: true
+    type: "string"
+  - name: endDate
+    description: "计算结束日期，格式 YYYY-MM-DD（必填）"
+    position: "query"
+    required: true
+    type: "string"
+  description: "计算工作日与节假日 - 根据起止日期，返回该时间段内的所有工作日和节假日（含法定节假日与周末）。"
+  requestTemplate:
+    method: "GET"
+    url: "https://jira.bst-agent.com/rest/shdsd-Timesheet/3/calWorkday"
+  responseTemplate:
+    prependBody: |
+      # API Response Information
+
+      Below is the response from an API call. To help you understand the data, I've provided:
+
+      1. A detailed description of all fields in the response structure
+      2. The complete API response
+
+      ## Response Structure
+
+      > Content-Type: application/json
+
+      - **holidays**: 节假日列表（YYYY-MM-DD），包含法定节假日、周末及调休放假的日期 (Type: array)
+        - **holidays[]**: Items of type string
+      - **workdays**: 有效工作日列表（YYYY-MM-DD），包含正常工作日和调休上班的周末 (Type: array)
+        - **workdays[]**: Items of type string
+
+      ## Original Response
+
+- name: query_leave_record
+  args:
+  - name: startDate
+    description: "查询起始日期，格式 YYYY-MM-DD (必填)"
+    position: "query"
+    required: true
+    type: "string"
+  - name: endDate
+    description: "查询结束日期，格式 YYYY-MM-DD（必填）"
+    position: "query"
+    required: true
+    type: "string"
+  - name: userName
+    description: "用户的邮箱以@bst.ai结尾，用于指定查询用户 (非必填)"
+    position: "query"
+    type: "string"
+  - name: year
+    description: "年份参数不能为空，必须设置为查询的起始日期的年份"
+    position: "query"
+    type: "integer"
+  - name: maxResults
+    description: "每页最大返回数量，默认 1000，最大 10000"
+    position: "body"
+    required: true
+    type: "integer"
+  - name: startAt
+    description: "分页起始位置，默认为 0"
+    position: "body"
+    required: true
+    type: "integer"
+  description: "根据日期范围和用户名查询用户的请假记录（如休假、病假等）"
+  requestTemplate:
+    method: "GET"
+    url: "https://jira.bst-agent.com/rest/shdsd-Timesheet/3/leave"
+  responseTemplate:
+    prependBody: |+
+      # API Response Information
+
+      Below is the response from an API call. To help you understand the data, I've provided:
+
+      1. A detailed description of all fields in the response structure
+      2. The complete API response
+
+      ## Response Structure
+
+      > Content-Type: application/json
+
+      - **isLast**: 是否为最后一页 (Type: boolean)
+      - **maxResults**: 本次请求允许返回的最大数量（默认 10） (Type: integer)
+      - **startAt**: 当前分页起始位置，默认为 0 (Type: integer)
+      - **total**: 匹配查询条件的总记录数 (Type: integer)
+      - **values**: 请假记录列表 (Type: array)
+        - **values[].dailyLeaveTime**: 可读的请假时长，如 '1d', '7h', '4h', '1h' (Type: string)
+        - **values[].id**: 请假记录唯一 ID (Type: integer)
+        - **values[].isPaid**: 是否带薪：0=无薪，1=带薪 (Type: integer)
+        - **values[].leaveSeconds**: 本次请假的总时长（秒），例如 28800 秒 = 8 小时 (Type: integer)
+        - **values[].leaveTime**: 请假发生的日期，格式 YYYY-MM-DD (Type: string)
+        - **values[].typeId**: 请假类型 ID，如 1=休假，2=调休，3=病假等 (Type: integer)
+        - **values[].typeName**: 请假类型名称，如 '休假' (Type: string)
+        - **values[].user**: 用户信息 (Type: object)
+          - **values[].user.avatar**: 用户头像的 URL (Type: string)
+          - **values[].user.displayName**: 用户显示名称 (Type: string)
+          - **values[].user.emailAddress**: 用户邮箱地址 (Type: string)
+          - **values[].user.isActive**: 用户是否激活（true=激活，false=停用） (Type: boolean)
+          - **values[].user.isDel**: 用户是否已删除 (Type: boolean)
+          - **values[].user.userKey**: 用户的唯一标识 Key (Type: string)
+          - **values[].user.userName**: 用户登录名（邮箱） (Type: string)
+
+      ## Original Response
+
+- name: search_worklog
+  args:
+  - name: startDate
+    description: "查询开始日期（YYYY-MM-DD）"
+    position: "body"
+    required: true
+    type: "string"
+  - name: endDate
+    description: "查询结束日期（YYYY-MM-DD）"
+    position: "body"
+    required: true
+    type: "string"
+  - name: userName
+    description: "用户的邮箱以@bst.ai结尾，用于指定查询用户"
+    position: "body"
+    required: true
+    type: "string"
+  - name: maxResults
+    description: "每页最大返回数量，默认 1000，最大 10000"
+    position: "body"
+    required: true
+    type: "integer"
+  - name: startAt
+    description: "分页起始位置，默认为 0"
+    position: "body"
+    required: true
+    type: "integer"
+  description: "搜索工作日志 - 根据起止日期、用户等条件查询工作日志列表。"
+  requestTemplate:
+    method: "POST"
+    url: "https://jira.bst-agent.com/rest/shdsd-Timesheet/3/worklog/search"
+    headers:
+    - key: "Content-Type"
+      value: "application/json"
+  responseTemplate:
+    prependBody: |-
+      # API Response Information
+
+      Below is the response from an API call. To help you understand the data, I've provided:
+
+      1. A detailed description of all fields in the response structure
+      2. The complete API response
+
+      ## Response Structure
+
+      > Content-Type: application/json
+
+      - **isLast**: 是否为最后一页 (Type: boolean)
+      - **maxResults**: 本次请求返回的最大数量 (Type: integer)
+      - **total**: 匹配的总记录数 (Type: integer)
+      - **values**: 工作日志列表 (Type: array)
+        - **values[].approve**: 用户信息 (Type: object)
+          - **values[].approve.avatar**: 用户头像的 URL (Type: string)
+          - **values[].approve.displayName**: 用户显示名称 (Type: string)
+          - **values[].approve.emailAddress**: 用户邮箱地址 (Type: string)
+          - **values[].approve.isActive**: 用户是否激活 (Type: boolean)
+          - **values[].approve.isDel**: 用户是否已删除 (Type: boolean)
+          - **values[].approve.userKey**: 用户的唯一标识 Key (Type: string)
+          - **values[].approve.userName**: 用户登录名（邮箱格式） (Type: string)
+        - **values[].auditTime**: 审核时间，可能为空 (Type: string)
+        - **values[].author**: 用户信息 (Type: object)
+          - **values[].author.avatar**: 用户头像的 URL (Type: string)
+          - **values[].author.displayName**: 用户显示名称 (Type: string)
+          - **values[].author.emailAddress**: 用户邮箱地址 (Type: string)
+          - **values[].author.isActive**: 用户是否激活 (Type: boolean)
+          - **values[].author.isDel**: 用户是否已删除 (Type: boolean)
+          - **values[].author.userKey**: 用户的唯一标识 Key (Type: string)
+          - **values[].author.userName**: 用户登录名（邮箱格式） (Type: string)
+        - **values[].create**: 用户信息 (Type: object)
+          - **values[].create.avatar**: 用户头像的 URL (Type: string)
+          - **values[].create.displayName**: 用户显示名称 (Type: string)
+          - **values[].create.emailAddress**: 用户邮箱地址 (Type: string)
+          - **values[].create.isActive**: 用户是否激活 (Type: boolean)
+          - **values[].create.isDel**: 用户是否已删除 (Type: boolean)
+          - **values[].create.userKey**: 用户的唯一标识 Key (Type: string)
+          - **values[].create.userName**: 用户登录名（邮箱格式） (Type: string)
+        - **values[].createTime**: 日志创建时间，格式：YYYY-MM-DD HH:MM:SS.s (Type: string)
+        - **values[].id**: 工作日志唯一 ID (Type: integer)
+        - **values[].isAppendLog**: 是否为补录日志 (Type: boolean)
+        - **values[].issueId**: 关联的 Jira Issue ID (Type: integer)
+        - **values[].memo**: 工作备注 (Type: string)
+        - **values[].overTime**: 加班时长（秒），可能为空 (Type: integer)
+        - **values[].overTimeStr**: 加班时长字符串表示 (Type: string)
+        - **values[].projectId**: 项目 ID (Type: integer)
+        - **values[].projectKey**: 项目 Key，如 PUBLIC (Type: string)
+        - **values[].startDate**: 工作日期，格式 YYYY-MM-DD (Type: string)
+        - **values[].status**: 状态码：1=待提交，2=已提交，3=已审批等 (Type: integer)
+        - **values[].timeWorked**: 实际工作时长（秒） (Type: integer)
+        - **values[].timeWorkedStr**: 工作时长字符串表示，如 '1h', '3h 30m' (Type: string)
+        - **values[].unitSample**: 单位示例，如 '2d 2h 20m' (Type: string)
+        - **values[].workLogType**: 工时类型编码 (Type: string)
+        - **values[].workLogTypeName**: 工时类型名称，如 '管理工作' (Type: string)
+
+      ## Original Response

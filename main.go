@@ -78,7 +78,7 @@ func onHttpResponseHeaders(ctx wrapper.HttpContext, config config.SimpleConfig) 
 }
 
 func onHttpResponseBody(ctx wrapper.HttpContext, config config.SimpleConfig, body []byte) types.Action {
-	log.Infof("on HttpResponse Body start")
+	log.Infof("on token wasm plugin  HttpResponse Body start")
 	if !config.TokenConfig.Enabled {
 		return types.ActionContinue
 	}
@@ -88,6 +88,6 @@ func onHttpResponseBody(ctx wrapper.HttpContext, config config.SimpleConfig, bod
 		// 处理重试逻辑
 		return retry.HandleRetryWithToken(ctx, config, token.GetTokenManager())
 	}
-
+	log.Infof("on token wasm plugin HttpResponse Body end")
 	return types.ActionContinue
 }
